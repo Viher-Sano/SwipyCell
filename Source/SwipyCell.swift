@@ -1,46 +1,46 @@
 //
 //  SwipyCell.swift
-//  SwipyCell
+//  June
 //
-//  Created by Moritz Sternemann on 17.01.16.
-//  Copyright © 2016 Moritz Sternemann. All rights reserved.
+//  Created by Oksana Hanailiuk on 11/16/17.
+//  Copyright © 2017 Joshua Cleetus. All rights reserved.
 //
 
 import UIKit
 
 fileprivate struct SwipyCellConstants {
     static let bounceAmplitude              = 20.0  // Maximum bounce amplitude whe using the switch mode
-    static let damping: CGFloat             = 0.6   // Damping of the spring animation
+    static let damping: CGFloat             = 1.0   // Damping of the spring animation
     static let velocity: CGFloat            = 0.9   // Velocity of the spring animation
-    static let animationDuration            = 0.4   // Duration of the animation
+    static let animationDuration            = 0.1   // Duration of the animation
     static let bounceDuration1              = 0.2   // Duration of the first part of the bounce animation
     static let bounceDuration2              = 0.1   // Duration of the second part of the bounce animation
     static let durationLowLimit             = 0.25  // Lowest duration when swiping the cell because we try to simulate velocity
     static let durationHighLimit            = 0.1   // Highest duration when swiping the cell because we try to simulate velocity
 }
 
-open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {    
-    public var delegate: SwipyCellDelegate?
-    public var shouldAnimateSwipeViews: Bool!
-    public var defaultColor: UIColor!
-    public var swipeViewPadding: CGFloat!
+class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
+    var delegate: SwipyCellDelegate?
+    var shouldAnimateSwipeViews: Bool!
+    var defaultColor: UIColor!
+    var swipeViewPadding: CGFloat!
     
-    var panGestureRecognizer: UIPanGestureRecognizer!
+    private var panGestureRecognizer: UIPanGestureRecognizer!
     
-    var isExited: Bool!
-    var isDragging: Bool!
-    var shouldDrag: Bool!
-    var currentPercentage: CGFloat!
+    private var isExited: Bool!
+    private var isDragging: Bool!
+    private var shouldDrag: Bool!
+    private var currentPercentage: CGFloat!
     
     var direction: SwipyCellDirection!
-    var damping: CGFloat!
+    private var damping: CGFloat!
     var velocity: CGFloat!
-    var animationDuration: TimeInterval!
+    private var animationDuration: TimeInterval!
     
     var contentScreenshotView: UIImageView?
-    var colorIndicatorView: UIView!
-    var slidingView: UIView!
-    var activeView: UIView?
+    private var colorIndicatorView: UIView?
+    var slidingView: UIView?
+    private var activeView: UIView?
     
     fileprivate(set) public var triggers: [SwipyCellState: SwipyCellTrigger] = [:] {
         didSet { updateTriggerDirections() }
@@ -53,7 +53,7 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
     var firstLeftTrigger: CGFloat!
     var firstRightTrigger: CGFloat!
     
-// MARK: - Initialization
+    // MARK: - Initialization
     
     override public init(style: UITableViewCellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
@@ -101,19 +101,29 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         
         let contentViewScreenshotImage = image(withView: self)
         
-        colorIndicatorView = UIView(frame: bounds)
-        colorIndicatorView.autoresizingMask = [.flexibleHeight, .flexibleWidth]
-        addSubview(colorIndicatorView)
+        let rect = colorIndicatorRect(with: bounds)
+        colorIndicatorView = UIView(frame: rect)
+        if colorIndicatorView != nil {
+            addSubview(colorIndicatorView!)
+        }
         
         slidingView = UIView()
-        slidingView.contentMode = .center
-        colorIndicatorView.addSubview(slidingView)
+        slidingView?.contentMode = .center
+        if slidingView != nil {
+            colorIndicatorView?.addSubview(slidingView!)
+        }
         
         contentScreenshotView = UIImageView(image: contentViewScreenshotImage)
-        addSubview(contentScreenshotView!)
+        if contentScreenshotView != nil {
+            addSubview(contentScreenshotView!)
+        }
     }
     
-// MARK: - Public Interface
+    public func colorIndicatorRect(with rect: CGRect) -> CGRect {
+        return rect
+    }
+    
+    // MARK: - Public Interface
     
     public func addSwipeTrigger(forState state: SwipyCellState, withMode mode: SwipyCellMode, swipeView view: UIView, swipeColor color: UIColor, completion block: SwipyCellTriggerBlock?) {
         triggers[state] = SwipyCellTrigger(mode: mode, color: color, view: view, block: block)
@@ -130,9 +140,9 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
             triggers[trigger.key]?.block = block
         }
     }
-
     
-// MARK: - Prepare reuse
+    
+    // MARK: - Prepare reuse
     
     override open func prepareForReuse() {
         super.prepareForReuse()
@@ -146,17 +156,17 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
             return
         }
         
-        slidingView.removeFromSuperview()
+        slidingView?.removeFromSuperview()
         slidingView = nil
         
-        colorIndicatorView.removeFromSuperview()
+        colorIndicatorView?.removeFromSuperview()
         colorIndicatorView = nil
         
         contentScreenshotView!.removeFromSuperview()
         contentScreenshotView = nil
     }
-
-// MARK: - Gesture Recognition
+    
+    // MARK: - Gesture Recognition
     
     @objc func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
         if shouldDrag == false || isExited == true {
@@ -165,14 +175,14 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         
         let state = gesture.state
         let translation = gesture.translation(in: self)
-        let velocity = gesture.velocity(in: self)
+       // let velocity = gesture.velocity(in: self)
         var percentage: CGFloat = 0.0
         
         if let contentScreenshotView = contentScreenshotView {
             percentage = swipePercentage(withOffset: contentScreenshotView.frame.minX, relativeToWidth: bounds.width)
         }
         
-        let animationDuration = viewAnimationDuration(withVelocity: velocity)
+       // let animationDuration = viewAnimationDuration(withVelocity: velocity)
         direction = swipeDirection(withPercentage: percentage)
         
         let cellState = swipeState(withPercentage: percentage)
@@ -199,19 +209,26 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
             
             if stateTriggerHit && cellMode == .exit && direction != .center {
                 move(withDuration: animationDuration, inDirection: direction)
+                delegate?.swipyCellDidFinishSwiping(self, atState: cellState, triggerActivated: stateTriggerHit)
             } else {
-                swipeToOrigin {
-                    if stateTriggerHit {
-                        self.executeTriggerBlock()
-                    }
-                }
+                handleRegularSwipingBack(self, atState: cellState, triggerActivated: stateTriggerHit)
             }
-            
-            delegate?.swipyCellDidFinishSwiping(self, atState: cellState, triggerActivated: stateTriggerHit)
+//            delegate?.swipyCellDidFinishSwiping(self, atState: cellState, triggerActivated: stateTriggerHit)
         }
     }
     
+    func handleRegularSwipingBack(_ cell: SwipyCell, atState state: SwipyCellState, triggerActivated activated: Bool) {
+        swipeToOrigin {
+            if activated {
+                self.executeTriggerBlock()
+            }
+        }
+        delegate?.swipyCellDidFinishSwiping(cell, atState: state, triggerActivated: activated)
+    }
+    
     open override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        
+        guard delegate?.shouldSwipeCell(self) == true else { return false }
         guard let gesture = gestureRecognizer as? UIPanGestureRecognizer else { return false }
         
         let point = gesture.velocity(in: self)
@@ -222,15 +239,13 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
                 || (point.x < 0 && !triggerDirections.contains(.right)) {
                 return false
             }
-            
             delegate?.swipyCellDidStartSwiping(self)
             return true
         }
-        
         return false
     }
-
-// MARK: - Percentage calculations
+    
+    // MARK: - Percentage calculations
     
     func swipeOffset(withPercentage percentage: CGFloat, relativeToWidth width: CGFloat) -> CGFloat {
         var offset = percentage * width
@@ -255,8 +270,8 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         
         return percentage
     }
-
-// MARK: - Animation calculations
+    
+    // MARK: - Animation calculations
     
     func viewAnimationDuration(withVelocity velocity: CGPoint) -> TimeInterval {
         let width = bounds.width
@@ -271,8 +286,8 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         
         return TimeInterval(SwipyCellConstants.durationHighLimit + SwipyCellConstants.durationLowLimit - fabs(Double(horizontalVelocity / width) * animationDurationDiff))
     }
-
-// MARK: - State calculations
+    
+    // MARK: - State calculations
     
     func swipeDirection(withPercentage percentage: CGFloat) -> SwipyCellDirection {
         if percentage < 0 {
@@ -342,7 +357,7 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         return alpha
     }
     
-// MARK: - Trigger handling
+    // MARK: - Trigger handling
     
     func updateTriggerDirections() {
         triggerDirections = []
@@ -363,7 +378,7 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         firstRightTrigger = firstTrigger(forDirection: .right)
     }
     
-// MARK: - Animations / View movement
+    // MARK: - Animations / View movement
     
     func animate(withOffset offset: CGFloat) {
         let percentage = swipePercentage(withOffset: offset, relativeToWidth: bounds.width)
@@ -372,14 +387,14 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         
         if let view = view {
             setView(ofSlidingView: view)
-            slidingView.alpha = swipeAlpha(withPercentage: percentage)
+            slidingView?.alpha = swipeAlpha(withPercentage: percentage)
             slideSwipeView(withPercentage: percentage, view: view, isDragging: shouldAnimateSwipeViews)
         }
         
         let color = swipeColor(withSwipeState: state)
-        colorIndicatorView.backgroundColor = color
+        colorIndicatorView?.backgroundColor = color
     }
-
+    
     func slideSwipeView(withPercentage percentage: CGFloat, view: UIView?, isDragging: Bool) {
         guard let view = view else { return }
         
@@ -412,15 +427,19 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         } else if direction == .left {
             position.x = min(position.x, bounds.width - view.bounds.width - swipeViewPadding / 2.0)
         }
-
+        
         let activeViewSize = view.bounds.size
-        var activeViewFrame = CGRect(x: position.x - activeViewSize.width / 2.0,
-                                     y: position.y - activeViewSize.height / 2.0,
-                                     width: activeViewSize.width,
-                                     height: activeViewSize.height)
+        var activeViewFrame = buildActiveViewFrame(with: position, for: activeViewSize)
         
         activeViewFrame = activeViewFrame.integral
-        slidingView.frame = activeViewFrame
+        slidingView?.frame = activeViewFrame
+    }
+    
+    func buildActiveViewFrame(with position: CGPoint, for viewSize: CGSize) -> CGRect {
+        return CGRect(x: position.x - viewSize.width / 2.0,
+                      y: position.y - viewSize.height / 2.0,
+                      width: viewSize.width,
+                      height: viewSize.height)
     }
     
     func move(withDuration duration: TimeInterval, inDirection direction: SwipyCellDirection) {
@@ -439,11 +458,10 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         
         let state = swipeState(withPercentage: currentPercentage)
         let color = swipeColor(withSwipeState: state)
-        colorIndicatorView.backgroundColor = color
+        colorIndicatorView?.backgroundColor = color
         
-        UIView.animate(withDuration: duration, delay: 0, options: [.curveEaseOut, .allowUserInteraction], animations: {
+        UIView.animate(withDuration: duration, delay: 0, options: [.curveEaseIn, .allowUserInteraction], animations: {
             self.contentScreenshotView?.frame = frame
-            self.slidingView.alpha = 0
             self.slideSwipeView(withPercentage: percentage, view: self.activeView, isDragging: self.shouldAnimateSwipeViews)
         }, completion: { _ in
             self.executeTriggerBlock()
@@ -451,36 +469,102 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
     }
     
     public func swipeToOrigin(_ block: @escaping () -> Void) {
-        UIView.animate(withDuration: animationDuration, delay: 0, usingSpringWithDamping: damping, initialSpringVelocity: velocity, options: [], animations: {
+       // UIView.animate(withDuration: animationDuration, delay: 0, usingSpringWithDamping: damping, initialSpringVelocity: velocity, options: [], animations: {
+        
+        var percentage: CGFloat = 0.0
+        if let contentScreenshotView = contentScreenshotView {
+            percentage = swipePercentage(withOffset: contentScreenshotView.frame.minX, relativeToWidth: bounds.width)
+        }
+        let state = swipeState(withPercentage: percentage)
+        let color = swipeColor(withSwipeState: state)
+        
+         UIView.animate(withDuration: 0.2, delay: 0, options: .curveEaseIn, animations: {
             var frame = self.contentScreenshotView?.frame ?? .zero
             frame.origin.x = 0
             self.contentScreenshotView?.frame = frame
-            
-            self.colorIndicatorView.backgroundColor = self.defaultColor
-            
-            self.slidingView.alpha = 0
+            self.colorIndicatorView?.backgroundColor = color
+            self.slidingView?.alpha = 0
             self.slideSwipeView(withPercentage: 0, view: self.activeView, isDragging: false)
         }, completion: { finished in
             self.isExited = false
             self.uninstallSwipeView()
             
+            self.delegate?.swipyCellDidFinishSwiping(self, atState: state, triggerActivated: false)
             if finished {
                 block()
             }
         })
     }
     
-// MARK: - View setup
+    public func swipeToLeft(_ block: @escaping () -> Void) {
+        direction = .left
+        let origin: CGFloat = -bounds.width
+        setupSwipeView()
+        let percentage = swipePercentage(withOffset: origin, relativeToWidth: bounds.width)
+        var frame = contentScreenshotView?.frame ?? .zero
+        frame.origin.x = origin
+        
+        let state = swipeState(withPercentage: percentage)
+        let color = swipeColor(withSwipeState: state)
+        
+        let view = swipeView(withSwipeState: state)
+        
+        if let view = view {
+            setView(ofSlidingView: view)
+            slidingView?.alpha = swipeAlpha(withPercentage: percentage)
+            slideSwipeView(withPercentage: percentage, view: view, isDragging: shouldAnimateSwipeViews)
+        }
+        colorIndicatorView?.backgroundColor = color
+        
+        UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseIn, .allowUserInteraction], animations: {
+            self.contentScreenshotView?.frame = frame
+            self.slideSwipeView(withPercentage: percentage, view: self.activeView, isDragging: self.shouldAnimateSwipeViews)
+        }, completion: { _ in
+        
+            block()
+        })
+    }
+    
+    public func swipeToRight(_ block: @escaping () -> Void) {
+         direction = .right
+        let origin: CGFloat = bounds.width
+        setupSwipeView()
+        let percentage = swipePercentage(withOffset: origin, relativeToWidth: bounds.width)
+        var frame = contentScreenshotView?.frame ?? .zero
+        frame.origin.x = origin
+        
+        let state = swipeState(withPercentage: percentage)
+        let color = swipeColor(withSwipeState: state)
+        
+        let view = swipeView(withSwipeState: state)
+        
+        if let view = view {
+            setView(ofSlidingView: view)
+            slideSwipeView(withPercentage: percentage, view: view, isDragging: shouldAnimateSwipeViews)
+        }
+        
+        colorIndicatorView?.backgroundColor = color
+        
+        UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseIn, .allowUserInteraction], animations: {
+            self.contentScreenshotView?.frame = frame
+            self.slideSwipeView(withPercentage: percentage, view: self.activeView, isDragging: self.shouldAnimateSwipeViews)
+        }, completion: { _ in
+            block()
+        })
+    }
+    
+    // MARK: - View setup
     
     func setView(ofSlidingView view: UIView) {
-        let subviews = slidingView.subviews
-        _ = subviews.map { view in
-            view.removeFromSuperview()
+        if let subviews = slidingView?.subviews {
+            _ = subviews.map { view in
+                view.removeFromSuperview()
+            }
+            slidingView?.addSubview(view)
         }
-        slidingView.addSubview(view)
     }
-
-// MARK: - Utilities
+    
+    // MARK: - Utilities
     
     func image(withView view: UIView) -> UIImage {
         let scale = UIScreen.main.scale
@@ -521,5 +605,5 @@ open class SwipyCell: UITableViewCell, SwipyCellTriggerPointEditable {
         
         return false
     }
-    
 }
+
